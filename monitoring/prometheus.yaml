@@ -1,0 +1,10 @@
+global:
+  scrape_interval:     2s # How frequently to scrape targets by default
+  evaluation_interval: 2s # How frequently to evaluate rules by default
+
+scrape_configs:
+  - job_name: 'benchy'
+    static_configs:
+      # the harness exposes /metrics on the host; default port is 8080
+      - targets: ['host.docker.internal:8080']
+    metrics_path: /metrics

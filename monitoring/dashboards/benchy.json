@@ -1,0 +1,44 @@
+{
+  "title": "Benchy",
+  "uid": "benchy-overview",
+  "tags": ["benchy"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Transaction throughput (tx/sec)",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "benchy-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "benchy-prometheus" },
+          "expr": "sum by (__name__) (rate({__name__=~\".+_seconds_count\", job=\"benchy\"}[1m]))",
+          "legendFormat": "{{__name__}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Transaction latency p95 (s)",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "benchy-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "benchy-prometheus" },
+          "expr": "{__name__=~\".+_seconds\", job=\"benchy\", quantile=\"0.95\"}",
+          "legendFormat": "{{__name__}}"
+        }
+      ]
+    }
+  ]
+}

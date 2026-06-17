@@ -1,12 +1,12 @@
 (ns build
   (:require [clojure.tools.build.api :as b]))
 
-(def lib 'clj.template/lib)
+(def lib 'io.github.fiv0/benchy)
 (def version (format "0.1.%s" (b/git-count-revs nil)))
 (def class-dir "target/classes")
 (def basis (b/create-basis {:project "deps.edn"}))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
-(def main 'main)
+(def main 'benchy.bench)
 
 (defn clean
   "Cleans the target path."

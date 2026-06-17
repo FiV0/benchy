@@ -13,3 +13,5 @@ out
 .#*
 .clj-kondo/
 .lsp
+# roborev snapshots
+/.roborev/

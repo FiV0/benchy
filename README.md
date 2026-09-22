@@ -51,6 +51,32 @@ The **context** is a caller-owned map of resources such as connections, clients,
 Benchy passes it through unchanged and never closes its contents.
 Use `with-open` around the benchmark call when the caller needs to manage connection lifetimes.
 
+### SQLite example
+
+Run the [next.jdbc](https://cljdoc.org/d/com.github.seancorfield/next.jdbc/1.3.1070/doc/getting-started)
+[SQLite example](examples/benchy/examples/sqlite.clj) from this checkout:
+
+```sh
+clj -X:sqlite-example
+# Optionally change the workload duration (default: 2 seconds):
+clj -X:sqlite-example :duration-ms 5000
+```
+
+It seeds 1,000 counters in a fresh in-memory database, then uses one worker to
+choose between primary-key lookups (80% weight) and autocommitted increments
+(20% weight). It demonstrates caller-owned resources via `:context`, a `:setup?`
+stage, a seeded RNG, `:pool`, `:pick-weighted`, and per-operation `:transaction`
+timing. Setup time is excluded from throughput. Here, a Benchy transaction is
+one measured callback; the seed inserts share a separate JDBC transaction.
+
+The example prints a summary and a table of operation counts, errors, and latency
+in milliseconds, and returns the full result map. It owns one connection and
+closes it after the run, discarding the database without creating files.
+The JDBC dependencies are confined to the example alias. This short run has no
+warmup and includes JDBC statement preparation and result handling in its timings.
+
+### Worker callbacks
+
 Each callback receives a worker map containing:
 
 | Key | Value |
@@ -160,5 +186,5 @@ clj -T:build jar
 ```
 
 The build creates a regular library JAR and Maven metadata under `target/`; dependencies are not bundled.
-No CLI or concrete benchmark suite is included.
+The optional SQLite example runs from the checkout and is not included in the JAR.
 See [UPSTREAM.md](UPSTREAM.md) for the extraction revision and [LICENSE](LICENSE) for the Mozilla Public License 2.0.

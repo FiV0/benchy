@@ -23,7 +23,8 @@
              :extra-deps {com.github.seancorfield/next.jdbc {:mvn/version "1.4.72"}
                           org.xerial/sqlite-jdbc {:mvn/version "3.54.1.0"}}}
 
-  :build {:extra-deps {io.github.clojure/tools.build {:git/tag "v0.10.6" :git/sha "52cf7d6"}}
+  :build {:extra-deps {io.github.clojure/tools.build {:git/tag "v0.10.6" :git/sha "52cf7d6"}
+                       slipset/deps-deploy {:mvn/version "0.2.2"}}
           :ns-default build}}
 
  :mvn/repos {"central"        {:url "https://repo1.maven.org/maven2/"}

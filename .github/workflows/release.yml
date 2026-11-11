@@ -1,11 +1,10 @@
 name: Release
 
-# Bump `version` in build.clj, push to main, then run this workflow manually
-# (Actions -> Release -> Run workflow). It tests, deploys to Clojars and
-# tags the commit as v<version>.
+# Push a tag like v0.1.0 to test and deploy that version to Clojars.
 
 on:
-  workflow_dispatch:
+  push:
+    tags: ['v*']
 
 jobs:
   verify:
@@ -14,19 +13,13 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Read version from build.clj
+      - name: Derive version from tag
         id: version
         run: |
-          VERSION=$(sed -n 's/^(def version "\(.*\)")$/\1/p' build.clj)
-          if [ -z "$VERSION" ]; then
-            echo "Could not read version from build.clj" >&2
-            exit 1
-          fi
-          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
-            echo "Tag v$VERSION already exists; bump the version in build.clj" >&2
+          VERSION="${GITHUB_REF_NAME#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Tag '$GITHUB_REF_NAME' is not of the form vMAJOR.MINOR.PATCH" >&2
             exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -55,8 +48,6 @@ jobs:
   publish:
     needs: verify
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -82,11 +73,5 @@ jobs:
         env:
           CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
           CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
+          BENCHY_VERSION: ${{ needs.verify.outputs.version }}
         run: clojure -T:build deploy
-
-      - name: Tag release
-        env:
-          VERSION: ${{ needs.verify.outputs.version }}
-        run: |
-          git tag "v$VERSION"
-          git push origin "v$VERSION"

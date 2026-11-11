@@ -1,21 +1,13 @@
 # Releasing
 
-1. Bump `version` in `build.clj`:
-   ```clojure
-   (def version "0.1.1")
-   ```
-2. Commit and push to `main`:
-   ```sh
-   git commit -am "release 0.1.1"
-   git push origin main
-   ```
-3. Run the release workflow: GitHub → Actions → Release → Run workflow
-   (or `gh workflow run release.yml`).
+Tag the commit on `main` you want to release and push the tag:
 
-The workflow runs the tests, deploys to Clojars and pushes the tag `v0.1.1`.
-Don't create the tag yourself: the workflow fails if `v<version>` already exists.
-
-To check the tag afterwards:
 ```sh
-git fetch --tags && git tag -l 'v*'
+git tag v0.1.1
+git push origin v0.1.1
 ```
+
+The release workflow takes the version from the tag (`v0.1.1` → `0.1.1`),
+runs the tests and deploys to Clojars. No version bump commit is needed.
+
+Local builds without a tag use `0.1.0-SNAPSHOT` (see `build.clj`).

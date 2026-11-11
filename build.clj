@@ -3,7 +3,9 @@
             [deps-deploy.deps-deploy :as dd]))
 
 (def lib 'org.clojars.fiv0/benchy)
-(def version "0.1.0")
+;; Release builds get the version from the git tag via BENCHY_VERSION
+;; (set by .github/workflows/release.yml); local builds are snapshots.
+(def version (or (System/getenv "BENCHY_VERSION") "0.1.0-SNAPSHOT"))
 (def class-dir "target/classes")
 (def basis (delay (b/create-basis {:project "deps.edn"})))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))

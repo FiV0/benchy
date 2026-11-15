@@ -6,6 +6,10 @@ orchestration, tracing, timing and structured reports for benchmarks.
 
 The library was originally extracted from [XTDB](https://github.com/xtdb/xtdb/) where I first encountered it.
 
+```clj
+org.clojars.fiv0/benchy {:mvn/version "0.1.0"}
+```
+
 ## Example
 
 ## Worker map

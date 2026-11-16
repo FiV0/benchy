@@ -33,6 +33,9 @@
   (let [ws (mapv #(double (max 0.0 %)) weights)
         xs (vec xs)
         n  (count xs)]
+    (assert (= (count ws) n)
+            (str "weights and xs must have the same length, got "
+                 (count ws) " weights and " n " items"))
     (when (pos? n)
       (let [s (reduce + 0.0 ws)]
         (if (pos? s)

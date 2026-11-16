@@ -47,6 +47,13 @@
       (is (thrown? clojure.lang.ExceptionInfo (random/weighted-sample-fn weights))))
     (is (= #{:a :b} (set (repeatedly 100 #(random/weighted-nth r [0 0] [:a :b])))))))
 
+(deftest weighted-nth-requires-matching-lengths
+  (let [r (Random. 1)]
+    (is (thrown? AssertionError (random/weighted-nth r [1 2 3] [:a :b])))
+    (is (thrown? AssertionError (random/weighted-nth r [1] [:a :b])))
+    (is (thrown? AssertionError (random/weighted-nth r [1] [])))
+    (is (nil? (random/weighted-nth r [] [])))))
+
 (deftest weighted-sampling-many-skewed-weights
   ;; Item i has weight i + 1, so P(i) = (i + 1) / 5050. Checks that every
   ;; table slot splits its mass correctly, not just the uniform case.

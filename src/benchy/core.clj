@@ -1,10 +1,10 @@
 (ns benchy.core
   "Composable, database-independent benchmark tasks."
-  (:require [benchy.report :as report]
+  (:require [benchy.random :as random]
+            [benchy.report :as report]
             [benchy.runtime :as runtime])
-  (:import (com.google.common.collect MinMaxPriorityQueue)
-           (java.time Clock Duration)
-           (java.util Comparator Random)
+  (:import (java.time Clock Duration)
+           (java.util Random)
            (java.util.concurrent CancellationException)
            (java.util.concurrent.atomic AtomicLong)))
 
@@ -33,47 +33,10 @@
 (defn set-count! [^AtomicLong !counter, ^long v]
   (.set !counter (inc v)))
 
-(defn weighted-sample-fn
-  "Aliased random sampler:
-
-  https://www.peterstefek.me/alias-method.html
-
-  Given a seq of [item weight] pairs, return a function who when given a Random will return an item according to the weight distribution."
-  [weighted-items]
-  (when (or (some (fn [[_ weight]]
-                   (not (and (number? weight) (Double/isFinite (double weight))
-                             (not (neg? weight))))) weighted-items)
-            (and (seq weighted-items)
-                 (let [total (reduce + 0.0 (map (comp double second) weighted-items))]
-                   (not (and (Double/isFinite total) (pos? total))))))
-    (throw (ex-info "Weights must be finite, non-negative, with a positive total"
-                    {:benchy/type :invalid-weights})))
-  (case (count weighted-items)
-    0 (constantly nil)
-    1 (constantly (ffirst weighted-items))
-
-    (let [total (reduce + 0.0 (map (comp double second) weighted-items))
-          len (count weighted-items)
-          normalized-items (mapv (fn [[item weight]] [item (* len (/ (double weight) total))]) weighted-items)
-          pq (doto (.create (MinMaxPriorityQueue/orderedBy ^Comparator (fn [[_ w] [_ w2]] (compare w w2))))
-               (.addAll normalized-items))
-          parts (object-array len)]
-
-      (dotimes [i len]
-        (let [[smallest small-weight] (.pollFirst pq)
-              overfill (- 1.0 small-weight)]
-          (if (and (pos? overfill) (not (.isEmpty pq)))
-            (let [[largest large-weight] (.pollLast pq)
-                  new-weight (- large-weight overfill)]
-              (.add pq [largest new-weight])
-              (aset parts i [small-weight smallest largest]))
-            (aset parts i [1.0 smallest smallest]))))
-
-      ^{:table parts}
-      (fn sample-weighting [^Random random]
-        (let [i (.nextInt random len)
-              [split small large] (aget parts i)]
-          (if (< (.nextDouble random) (double split)) small large))))))
+(def ^{:deprecated true
+       :doc "Deprecated: use `benchy.random/weighted-sample-fn`."
+       :arglists '([weighted-items])}
+  weighted-sample-fn random/weighted-sample-fn)
 
 (defn random-seq [worker opts f & args]
   (let [{:keys [min, max, unique]} opts]
@@ -186,7 +149,7 @@
                   (when-not (and (sequential? choices)
                                  (every? #(and (vector? %) (= 2 (count %))) choices))
                     (invalid! (conj path :choices) "Expected [weight task] choices"))
-                  (let [sampler (weighted-sample-fn
+                  (let [sampler (random/weighted-sample-fn
                                  (mapv (fn [i [weight child]]
                                          [(compile-task (conj path :choices i 1) child) weight])
                                        (range) choices))]

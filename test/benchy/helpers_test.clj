@@ -32,20 +32,48 @@
 
 (deftest weighted-samplers-respect-zero-weights
   (let [r (proxy [Random] [] (nextInt [_] 0) (nextDouble [] 0.0))]
-    (is (= :positive ((bench/weighted-sample-fn [[:zero 0] [:positive 1]]) r)))
+    (is (= :positive ((random/weighted-sample-fn [[:zero 0] [:positive 1]]) r)))
     (is (= :positive (random/weighted-nth r [0 1] [:zero :positive])))))
 
 (deftest weighted-sampling-distribution
-  (let [sampler (bench/weighted-sample-fn [[:a 1] [:b 3] [:never 0]])
+  (let [sampler (random/weighted-sample-fn [[:a 1] [:b 3] [:never 0]])
         r (Random. 123)
         counts (frequencies (repeatedly 20000 #(sampler r)))]
     (is (not (contains? counts :never)))
     (is (< 0.23 (/ (:a counts) 20000.0) 0.27))
-    (is (nil? ((bench/weighted-sample-fn []) r)))
-    (is (= :only ((bench/weighted-sample-fn [[:only 2]]) r)))
+    (is (nil? ((random/weighted-sample-fn []) r)))
+    (is (= :only ((random/weighted-sample-fn [[:only 2]]) r)))
     (doseq [weights [[[:a -1]] [[:a Double/NaN]] [[:a Double/POSITIVE_INFINITY]] [[:a 0]]]]
-      (is (thrown? clojure.lang.ExceptionInfo (bench/weighted-sample-fn weights))))
+      (is (thrown? clojure.lang.ExceptionInfo (random/weighted-sample-fn weights))))
     (is (= #{:a :b} (set (repeatedly 100 #(random/weighted-nth r [0 0] [:a :b])))))))
+
+(deftest weighted-sampling-many-skewed-weights
+  ;; Item i has weight i + 1, so P(i) = (i + 1) / 5050. Checks that every
+  ;; table slot splits its mass correctly, not just the uniform case.
+  (let [n 100
+        total (/ (* n (inc n)) 2.0)
+        draws 500000
+        sampler (random/weighted-sample-fn (mapv (fn [i] [i (inc i)]) (range n)))
+        r (Random. 7)
+        counts (frequencies (repeatedly draws #(sampler r)))
+        observed (fn [lo hi] (/ (reduce + (map #(get counts % 0) (range lo hi))) (double draws)))
+        expected (fn [lo hi] (/ (reduce + (map inc (range lo hi))) total))]
+    (doseq [[lo hi] [[0 10] [0 50] [50 100] [90 100]]]
+      (is (< (Math/abs (- (observed lo hi) (expected lo hi))) 0.005) [lo hi]))))
+
+(deftest core-weighted-sample-fn-is-an-alias
+  (let [r (proxy [Random] [] (nextInt [_] 0) (nextDouble [] 0.0))]
+    (is (= :positive ((bench/weighted-sample-fn [[:zero 0] [:positive 1]]) r)))))
+
+(deftest rand-gaussian-is-a-clamped-half-normal
+  (let [r (Random. 99)
+        n 1000
+        samples (repeatedly 20000 #(random/rand-gaussian r n))]
+    (is (every? #(<= 0 % (dec n)) samples))
+    ;; |N(0,1)| / 3 has mean sqrt(2/pi) / 3 ≈ 0.266.
+    (is (< 250 (:mean (stats/distribution-stats samples)) 282))
+    (is (nil? (random/rand-gaussian r 0)))
+    (is (= 0 (random/rand-gaussian r 1)))))
 
 (deftest worker-samplers-and-counters
   (let [worker {:random (Random. 12)} counter (AtomicLong.)]
